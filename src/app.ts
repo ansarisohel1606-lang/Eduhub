@@ -1,4 +1,6 @@
 import express from "express";
+import authRoutes from "./routes/auth.routes";
+import AppError from "./utils/AppError";
 
 const app = express();
 
@@ -10,5 +12,9 @@ app.get("/health", (_req, res) => {
     message: "EduHub API is running",
   });
 });
+
+app.use("/api/v1/auth", authRoutes);
+
+app.use(AppError.handle);
 
 export default app;
