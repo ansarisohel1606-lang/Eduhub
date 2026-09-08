@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+     "types": ["node"],
     "target": "ES2022",
     "module": "CommonJS",
 
@@ -13,6 +14,6 @@
     "sourceMap": true,
     "skipLibCheck": true
   },
-  "include": ["src"],
+  "include": ["src", "config/config.js"],
   "exclude": ["node_modules", "dist"]
 }
