@@ -1,6 +1,8 @@
 import express from "express";
 import authRoutes from "./routes/auth.routes";
 import AppError from "./utils/AppError";
+import notFound from "./middlewares/notFound";
+import errorHandler from "./middlewares/errorHandler";
 import adminRoutes from "./routes/admin.routes";
 import teacherRoutes from "./routes/teacher.routes";
 import studentRoutes from "./routes/student.routes";
@@ -24,5 +26,11 @@ app.use("/student", studentRoutes);
 
 //End
 app.use(AppError.handle);
+
+// 404 middleware must come AFTER routes
+app.use(notFound);
+
+// Global error handler MUST be last
+app.use(errorHandler);
 
 export default app;

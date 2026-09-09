@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import authService from "../services/auth.service";
 import User from "../models/User";
+import AppError from "../errors/AppError";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 const register = async (
   req: Request,
@@ -39,11 +40,9 @@ const login = async (
       password,
     });
 
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
-      data: result,
-    });
+    if(!result) {
+      return next(new AppError("Invalid email or password", 401));  
+    }
   } catch (error) {
     next(error);
   }
@@ -56,10 +55,7 @@ const getProfile = async (
 ) => {
   try {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-      });
+     throw new AppError("User not authenticated", 401);
     }
 
     const user = await User.findByPk(req.user.userId, {
@@ -69,10 +65,7 @@ const getProfile = async (
     });
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+        throw new AppError("User not found", 404);
     }
 
     return res.status(200).json({

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import AppError from "../errors/AppError";
 
 interface AuthTokenPayload {
   userId: number;
@@ -21,32 +22,23 @@ const authMiddleware = (
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        message: "Authorization token is required",
-      });
+      throw new AppError("Authorization header not found", 401);
     }
 
     if (!authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid authorization format",
-      });
+      throw new AppError("Invalid authorization header format", 401);
     }
 
     const token = authHeader.split(" ")[1];
 
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Authorization token is required",
-      });
+      throw new AppError("Token not found", 401);
     }
 
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
-      throw new Error("JWT_SECRET is not configured");
+      throw new AppError("JWT_SECRET is not configured", 500);
     }
 
     const decoded = jwt.verify(
@@ -58,10 +50,13 @@ const authMiddleware = (
 
     next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired token",
-    });
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    throw new AppError("An unexpected error occurred", 500);
   }
 };
 
