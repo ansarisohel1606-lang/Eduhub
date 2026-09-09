@@ -13,7 +13,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.use("/api/v1/auth", authRoutes);
+app.use("/user", authRoutes);
 
 app.use(AppError.handle);
 
