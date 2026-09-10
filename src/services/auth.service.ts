@@ -1,152 +1,163 @@
 import bcrypt from "bcrypt";
 import User from "../models/User";
-import AppError from "../utils/AppError";
+import AppError from "../errors/AppError";
 import generateToken from "../utils/jwt";
 
 interface RegisterInput {
-  name: string;
-  email: string;
-  password: string;
+    name: string;
+    email: string;
+    password: string;
 }
 
 interface LoginInput {
-  email: string;
-  password: string;
+    email: string;
+    password: string;
 }
 
 const registerUser = async ({
-  name,
-  email,
-  password,
+    name,
+    email,
+    password,
 }: RegisterInput) => {
-  if (!name || !name.trim()) {
-    throw new AppError("Name is required", 400);
-  }
 
-  if (!email || !email.trim()) {
-    throw new AppError("Email is required", 400);
-  }
+    // Validate name
+    if (!name || !name.trim()) {
+        throw new AppError("Name is required", 400);
+    }
 
-  if (!password) {
-    throw new AppError("Password is required", 400);
-  }
+    // Validate email
+    if (!email || !email.trim()) {
+        throw new AppError("Email is required", 400);
+    }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Validate password
+    if (!password) {
+        throw new AppError("Password is required", 400);
+    }
 
-  if (!emailRegex.test(email.trim())) {
-    throw new AppError("Invalid email format", 400);
-  }
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const normalizedEmail = email.trim().toLowerCase();
+    if (!emailRegex.test(email.trim())) {
+        throw new AppError("Invalid email format", 400);
+    }
 
-  const existingUser = await User.findOne({
-    where: {
-      email: normalizedEmail,
-    },
-  });
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
 
-  if (existingUser) {
-    throw new AppError("Email already registered", 409);
-  }
+    // Check existing user
+    const existingUser = await User.findOne({
+        where: {
+            email: normalizedEmail,
+        },
+    });
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+    if (existingUser) {
+        throw new AppError("Email already registered", 409);
+    }
 
-  const user = await User.create({
-    name: name.trim(),
-    email: normalizedEmail,
-    password: hashedPassword,
-    role: "student",
-    isActive: true,
-  });
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  const accessToken = generateToken({
-    userId: user.id,
-    name: user.name,
-    role: user.role,
-  });
+    // Create user
+    const user = await User.create({
+        name: name.trim(),
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: "student",
+        isActive: true,
+    });
 
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    isActive: user.isActive,
-    accessToken,
-  };
+    // Generate JWT
+    const accessToken = generateToken({
+        userId: user.id,
+        name: user.name,
+        role: user.role,
+    });
+
+    // Return safe user data
+    return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        accessToken,
+    };
 };
 
 const loginUser = async ({
-  email,
-  password,
-}: LoginInput) => {
-  // 1. Validate email
-  if (!email || !email.trim()) {
-    throw new AppError("Email is required", 400);
-  }
-
-  // 2. Validate password
-  if (!password) {
-    throw new AppError("Password is required", 400);
-  }
-
-  // 3. Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (!emailRegex.test(email.trim())) {
-    throw new AppError("Invalid email format", 400);
-  }
-
-  // 4. Normalize email
-  const normalizedEmail = email.trim().toLowerCase();
-
-  // 5. Find user
-  const user = await User.findOne({
-    where: {
-      email: normalizedEmail,
-    },
-  });
-
-  // 6. Generic authentication error
-  if (!user) {
-    throw new AppError("Invalid email or password", 401);
-  }
-
-  // 7. Check inactive user
-  if (!user.isActive) {
-    throw new AppError("Invalid email or password", 401);
-  }
-
-  // 8. Compare password with bcrypt hash
-  const passwordMatch = await bcrypt.compare(
+    email,
     password,
-    user.password
-  );
+}: LoginInput) => {
 
-  if (!passwordMatch) {
-    throw new AppError("Invalid email or password", 401);
-  }
+    // Validate email
+    if (!email || !email.trim()) {
+        throw new AppError("Email is required", 400);
+    }
 
-  // 9. Generate JWT
-  const accessToken = generateToken({
-    userId: user.id,
-    name: user.name,
-    role: user.role,
-  });
+    // Validate password
+    if (!password) {
+        throw new AppError("Password is required", 400);
+    }
 
-  // 10. Return safe user data
-  return {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    accessToken,
-  };
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email.trim())) {
+        throw new AppError("Invalid email format", 400);
+    }
+
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Find user
+    const user = await User.findOne({
+        where: {
+            email: normalizedEmail,
+        },
+    });
+
+    // Generic authentication error
+    if (!user) {
+        throw new AppError("Invalid email or password", 401);
+    }
+
+    // Check inactive user
+    if (!user.isActive) {
+        throw new AppError("Invalid email or password", 401);
+    }
+
+    // Compare password
+    const passwordMatch = await bcrypt.compare(
+        password,
+        user.password
+    );
+
+    if (!passwordMatch) {
+        throw new AppError("Invalid email or password", 401);
+    }
+
+    // Generate JWT
+    const accessToken = generateToken({
+        userId: user.id,
+        name: user.name,
+        role: user.role,
+    });
+
+    // Return safe user data
+    return {
+        user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        },
+        accessToken,
+    };
 };
 
 export default {
-  registerUser,
-  loginUser,
+    registerUser,
+    loginUser,
 };
-

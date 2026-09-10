@@ -1,17 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import AppError from "../errors/AppError";
 
-interface AuthTokenPayload {
+export type UserRole = "student" | "teacher" | "admin";
+
+export interface AuthTokenPayload {
   userId: number;
-  role: "student" | "teacher" | "admin";
+  role: UserRole;
   iat?: number;
   exp?: number;
 }
 
-export interface AuthenticatedRequest extends Request {
+export type AuthenticatedRequest = Request & {
   user?: AuthTokenPayload;
-}
+};
 
 const authMiddleware = (
   req: AuthenticatedRequest,
@@ -22,23 +23,32 @@ const authMiddleware = (
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      throw new AppError("Authorization header not found", 401);
+      return res.status(401).json({
+        success: false,
+        message: "Authorization token is required",
+      });
     }
 
     if (!authHeader.startsWith("Bearer ")) {
-      throw new AppError("Invalid authorization header format", 401);
+      return res.status(401).json({
+        success: false,
+        message: "Invalid authorization format",
+      });
     }
 
     const token = authHeader.split(" ")[1];
 
     if (!token) {
-      throw new AppError("Token not found", 401);
+      return res.status(401).json({
+        success: false,
+        message: "Authorization token is required",
+      });
     }
 
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
-      throw new AppError("JWT_SECRET is not configured", 500);
+      throw new Error("JWT_SECRET is not configured");
     }
 
     const decoded = jwt.verify(
@@ -50,13 +60,10 @@ const authMiddleware = (
 
     next();
   } catch (error) {
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({
-        success: false,
-        message: error.message,
-      });
-    }
-    throw new AppError("An unexpected error occurred", 500);
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired token",
+    });
   }
 };
 
